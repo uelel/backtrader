@@ -179,10 +179,10 @@ class PlotScheme(object):
         self.lcolors = tableau10
 
         # strftime Format string for the display of ticks on the x axis
-        self.fmt_x_ticks = None
+        self.fmt_x_ticks = '%d/%m/%Y, %H:%M'
 
         # strftime Format string for the display of data points values
-        self.fmt_x_data = None
+        self.fmt_x_data = '%d/%m/%Y, %H:%M'
 
     def color(self, idx):
         colidx = tab10_index[idx % len(tab10_index)]
