@@ -112,7 +112,7 @@ class PlotScheme(object):
         # Default color for the 'line on close' plot
         self.loc = 'black'
         # Default color for a bullish bar/candle (0.75 -> intensity of gray)
-        self.barup = '0.75'
+        self.barup = 'green'
         # Default color for a bearish bar/candle
         self.bardown = 'red'
         # Level of transparency to apply to bars/cancles (NOT USED)
