@@ -874,6 +874,10 @@ class BackBroker(bt.BrokerBase):
         else:
             p = self._slip_down(plow, exprice, doslip=self.p.slip_open)
 
+        # In case of buy order take ask price
+        if order.isbuy() and hasattr(order.data, 'spread'):
+            p += order.data.spread[0]
+
         self._execute(order, ago=0, price=p, dtcoc=dtcoc)
 
     def _try_exec_close(self, order, pclose):
@@ -903,44 +907,71 @@ class BackBroker(bt.BrokerBase):
         order.pannotated = pclose
 
     def _try_exec_limit(self, order, popen, phigh, plow, plimit):
+        
         if order.isbuy():
+
+            if hasattr(order.data, 'spread'):
+                popen += order.data.spread[0]
+                phigh += order.data.spread[0]
+                plow += order.data.spread[0]
+            
+            # In case of opening long position, take ask popen price
             if plimit >= popen:
                 # open smaller/equal than requested - buy cheaper
                 pmax = min(phigh, plimit)
                 p = self._slip_up(pmax, popen, doslip=self.p.slip_open,
                                   lim=True)
                 self._execute(order, ago=0, price=p)
+            
+            # In case of target profit of short position: trace ask price
             elif plimit >= plow:
                 # day low below req price ... match limit price
                 self._execute(order, ago=0, price=plimit)
 
         else:  # Sell
+
+            # In case of opening short position, take bid popen price
             if plimit <= popen:
                 # open greater/equal than requested - sell more expensive
                 pmin = max(plow, plimit)
                 p = self._slip_down(plimit, popen, doslip=self.p.slip_open,
                                     lim=True)
                 self._execute(order, ago=0, price=p)
+
+            # In case of target profit of long position, trace bid price
             elif plimit <= phigh:
                 # day high above req price ... match limit price
                 self._execute(order, ago=0, price=plimit)
 
     def _try_exec_stop(self, order, popen, phigh, plow, pcreated, pclose):
+
         if order.isbuy():
+
+            if hasattr(order.data, 'spread'):
+                popen += order.data.spread[0]
+                phigh += order.data.spread[0]
+
+            # In case of opening long position, take ask popen price
             if popen >= pcreated:
                 # price penetrated with an open gap - use open
                 p = self._slip_up(phigh, popen, doslip=self.p.slip_open)
                 self._execute(order, ago=0, price=p)
+            
+            # In case of stop loss of short position, trace ask price
             elif phigh >= pcreated:
                 # price penetrated during the session - use trigger price
                 p = self._slip_up(phigh, pcreated)
                 self._execute(order, ago=0, price=p)
 
         else:  # Sell
+
+            # In case of opening short position, take bid popen price
             if popen <= pcreated:
                 # price penetrated with an open gap - use open
                 p = self._slip_down(plow, popen, doslip=self.p.slip_open)
                 self._execute(order, ago=0, price=p)
+            
+            # In case of stop loss of long position, trace bid price
             elif plow <= pcreated:
                 # price penetrated during the session - use trigger price
                 p = self._slip_down(plow, pcreated)
