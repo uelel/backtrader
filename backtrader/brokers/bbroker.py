@@ -908,6 +908,13 @@ class BackBroker(bt.BrokerBase):
 
     def _try_exec_limit(self, order, popen, phigh, plow, plimit):
         
+        # In case there are missing data before execution of
+        # opening order, do not allow execution
+        if not order.info and \
+           bt.num2date(order.data.datetime[0]) - bt.num2date(order.data.datetime[-1]) > \
+           datetime.timedelta(minutes=1):
+            return
+
         if order.isbuy():
 
             if hasattr(order.data, 'spread'):
