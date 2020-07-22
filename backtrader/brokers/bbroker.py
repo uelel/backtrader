@@ -952,13 +952,13 @@ class BackBroker(bt.BrokerBase):
                 phigh += order.data.spread[0]
 
             # In case of opening long position, take ask popen price
-            if popen >= pcreated:
+            if not order.info and popen >= pcreated:
                 # price penetrated with an open gap - use open
                 p = self._slip_up(phigh, popen, doslip=self.p.slip_open)
                 self._execute(order, ago=0, price=p)
             
             # In case of stop loss of short position, trace ask price
-            elif phigh >= pcreated:
+            elif not order.info and phigh >= pcreated:
                 # price penetrated during the session - use trigger price
                 p = self._slip_up(phigh, pcreated)
                 self._execute(order, ago=0, price=p)
@@ -966,13 +966,13 @@ class BackBroker(bt.BrokerBase):
         else:  # Sell
 
             # In case of opening short position, take bid popen price
-            if popen <= pcreated:
+            if not order.info and popen <= pcreated:
                 # price penetrated with an open gap - use open
                 p = self._slip_down(plow, popen, doslip=self.p.slip_open)
                 self._execute(order, ago=0, price=p)
             
             # In case of stop loss of long position, trace bid price
-            elif plow <= pcreated:
+            elif not order.info and plow <= pcreated:
                 # price penetrated during the session - use trigger price
                 p = self._slip_down(plow, pcreated)
                 self._execute(order, ago=0, price=p)
