@@ -52,3 +52,5 @@ from .vchartfile import VChartFile
 
 from .rollover import RollOver
 from .chainer import Chainer
+
+from .dataSynch import DataSynchronizer
