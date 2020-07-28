@@ -1,9 +1,11 @@
 import pandas as pd
+import numpy as np
 
 class DataSynchronizer():
     """Instantiates provided data feeds
+       Data feeds are provided with addData method
        Slices provided data feeds so that each data feed containes
-       only candles with same datetimes (i.e. synchronize them)
+        only candles with same datetimes (i.e. datas are synchronized)
        Adds synchronized data feeds into provided cerebro"""
 
     def __init__(self):
@@ -20,7 +22,8 @@ class DataSynchronizer():
         """Actual synchronization is implemented here"""
 
         # load data into full attribute of each data feed object
-        for key, inst in self.instDct.items():
+        for i, (key, inst) in enumerate(self.instDct.items()):
+            print('DataSynchronizer: initiating datafeed "%s"' % key)
             inst.init()
             inst.p.preloaded = True
 
@@ -30,16 +33,21 @@ class DataSynchronizer():
                 in self.instDct.values()]):
            
             # find dts that are present in all data feeds
-            for row in list(self.instDct.values())[0].full.iterrows():
+            for i, row in enumerate(list(self.instDct.values())[0].full.iterrows()):
+                print('DataSynchronizer: looking for overlapping dts %.1f%%' % \
+                      (i*100/list(self.instDct.values())[0].full.shape[0]),
+                      end='\r')
                 
-                dt = row[1]['time']
-                
-                if all([dt in inst.full.time.to_list()
+                dt = np.datetime64(row[1]['time'])
+                if all([dt in inst.full.time.values
                         for inst
                         in self.instDct.values()]):
                     self.dtLst.append(dt)
            
+            print('DataSynchronizer: looking for overlapping dts 100.0%')
+
             # crop data feeds based on datetimes in dtLst
+            print('DataSynchronizer: cropping data feeds based on overlapping dts')
             for inst in self.instDct.values():
                 inst.full = inst.full[inst.full['time'].isin(self.dtLst)]
 
@@ -49,5 +57,6 @@ class DataSynchronizer():
 
         self.synchronize()
 
+        print('DataSynchronizer: adding synchronized data feeds to cerebro')
         for name, inst in self.instDct.items():
             cerebro.adddata(inst, name=name)
