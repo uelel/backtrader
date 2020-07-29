@@ -7,7 +7,8 @@ class RecordValues(bt.Strategy):
        Output log complies with csv format"""
     
     params = dict(fileName='',
-                  columnNames=list())
+                  columnNames=list(),
+                  comment=None)
     
     def __init__(self):
         self.cnt = 0
@@ -15,6 +16,11 @@ class RecordValues(bt.Strategy):
         # Write data info into file
         with open(self.p.fileName, 'w') as file:
             file.write('# Execution time: %s\n' % (datetime.datetime.utcnow().strftime('%d.%m.%Y %H:%M UTC')))
+
+        # Write comment in case provided
+        if self.p.comment:
+            with open(self.p.fileName, 'a') as file:
+                file.write('# ' + self.p.comment + '\n')
         
         # Write column names into file
         with open(self.p.fileName, 'a') as file:
@@ -25,7 +31,7 @@ class RecordValues(bt.Strategy):
             dt=None):
         
         # Write log to file
-        dt = bt.num2date(dt) or bt.num2date(self.data.datetime[0])
+        dt = bt.num2date(dt) if dt else bt.num2date(self.datas[0].datetime[0])
         with open(self.p.fileName, 'a') as file:
             file.write('%s,%s\n' % (dt.strftime("%d.%m.%Y %H:%M"), txt))
     
