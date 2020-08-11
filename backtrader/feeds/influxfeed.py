@@ -24,7 +24,7 @@ from __future__ import (absolute_import, division, print_function,
 import backtrader as bt
 import backtrader.feed as feed
 from ..utils import date2num
-import datetime as dt
+import datetime
 
 TIMEFRAMES = dict(
     (
@@ -112,4 +112,108 @@ class InfluxDB(feed.DataBase):
         self.l.close[0] = bar['close']
         self.l.volume[0] = bar['volume']
 
+        return True
+
+
+class InfluxData(feed.DataBase):
+    
+    frompackages = (('influxdb', 'DataFrameClient'),
+                    ('influxdb.exceptions', 'InfluxDBClientError'))
+
+    params = dict(dbName=None, # fileName
+                  fromdate=None, # optional starttime for backtesting
+                  todate=None, # optional stoptime for backtesting
+                  timeframe=bt.TimeFrame.Minutes, # Timeframe for bt
+                  compression=1, # Timeframe for bt
+                  len=None,
+                  missing=None,
+                  preloaded=False)
+    
+    # Add extra attribute to lines object
+    lines = ('spread',)
+
+    def __init__(self):
+        
+        # Define full attribute to be accessed by DataSynchronizer class
+        self.full = None
+
+        # Assign timedelta parameter for strategy purposes
+        if self.p.timeframe == bt.TimeFrame.Minutes:
+            self.p.timedelta = datetime.timedelta(minutes=self.p.compression)
+        
+        # Assign granularity parameter
+        if self.p.timeframe == bt.TimeFrame.Minutes:
+            if self.p.compression <= 30: self.p.gran = 'M'+str(self.p.compression)
+            elif self.p.compression == 60: self.p.gran = 'H1'
+    
+    def init(self):
+
+        # Connect client
+        try:
+            self.client = DataFrameClient(host='127.0.0.1',
+                                          port=8086,
+                                          database=self.p.dbName)
+        except InfluxDBClientError as e:
+            print('Failed to establish connection with db: %s' % e)
+        
+        # Load dataframe with rates
+        query = 'SELECT "time", "open", "high", "low", "close", "spread"' \
+                'FROM "rates" WHERE time >= \'%s\' AND time < \'%s\'' \
+                'AND ("status" = \'C\' OR "status" = \'A\')' % \
+                (self.p.fromdate.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                 self.p.todate.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        try:        
+            self.full = self.client.query(query)['rates']
+        except InfluxDBClientError as e:
+            print('Error during loading data from db: %s' % e)
+    
+    def start(self):
+
+        if not self.p.preloaded: self.init()
+
+        # Count array candles
+        query = 'SELECT COUNT("close") FROM "rates" WHERE time >= \'%s\'' \
+                'AND time < \'%s\' AND ("status" = \'C\' OR "status" = \'A\')' % \
+                (self.p.fromdate.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                 self.p.todate.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        length = self.client.query(query)
+        self.p.len = length['rates']['count'][0]
+
+        # Count missing candles
+        query = 'SELECT COUNT("close") FROM "rates" WHERE time >= \'%s\'' \
+                'AND time < \'%s\' AND "status" = \'M\'' % \
+                (self.p.fromdate.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                 self.p.todate.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        missing = self.client.query(query)
+        self.p.missing = missing['rates']['count'][0] if 'rates' in missing else 0
+
+        # Update fromdate, todate values if needed
+        self.p.fromdate = self.full.first_valid_index().to_pydatetime()
+        self.p.todate = self.full.last_valid_index().to_pydatetime()
+        
+        # Create dataframe iterator
+        self.itr = self.full.iterrows()
+
+    def stop(self):
+        if self.full is not None: self.full = None
+
+    def _load(self):
+        
+        # If no file, no reading
+        if self.full is None: return False
+        
+        try:
+            candle = next(self.itr)
+        except StopIteration:
+            return False
+        
+        # Put rates to lines attribute
+        self.lines.datetime[0] = bt.date2num(candle[0].to_pydatetime())
+        self.lines.open[0] = candle[1]['open']
+        self.lines.high[0] = candle[1]['high']
+        self.lines.low[0] = candle[1]['low']
+        self.lines.close[0] = candle[1]['close']
+        if 'spread' in self.full.columns:
+            self.lines.spread[0] = candle[1]['spread']
+        
         return True
