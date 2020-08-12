@@ -25,6 +25,7 @@ import backtrader as bt
 import backtrader.feed as feed
 from ..utils import date2num
 import datetime
+import numpy as np
 
 TIMEFRAMES = dict(
     (
@@ -125,6 +126,7 @@ class InfluxData(feed.DataBase):
                   todate=None, # optional stoptime for backtesting
                   timeframe=bt.TimeFrame.Minutes, # Timeframe for bt
                   compression=1, # Timeframe for bt
+                  loadMissing=False,
                   len=None,
                   missing=None,
                   preloaded=False)
@@ -157,11 +159,17 @@ class InfluxData(feed.DataBase):
             print('Failed to establish connection with db: %s' % e)
         
         # Load dataframe with rates
-        query = 'SELECT "time", "open", "high", "low", "close", "spread"' \
-                'FROM "rates" WHERE time >= \'%s\' AND time < \'%s\'' \
-                'AND ("status" = \'C\' OR "status" = \'A\')' % \
-                (self.p.fromdate.strftime('%Y-%m-%dT%H:%M:%SZ'),
-                 self.p.todate.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        if self.p.loadMissing:
+            query = 'SELECT "time", "open", "high", "low", "close", "spread"' \
+                    'FROM "rates" WHERE time >= \'%s\' AND time < \'%s\'' % \
+                    (self.p.fromdate.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                     self.p.todate.strftime('%Y-%m-%dT%H:%M:%SZ'))
+        else:
+            query = 'SELECT "time", "open", "high", "low", "close", "spread"' \
+                    'FROM "rates" WHERE time >= \'%s\' AND time < \'%s\'' \
+                    'AND ("status" = \'C\' OR "status" = \'A\')' % \
+                    (self.p.fromdate.strftime('%Y-%m-%dT%H:%M:%SZ'),
+                     self.p.todate.strftime('%Y-%m-%dT%H:%M:%SZ'))
         try:        
             self.full = self.client.query(query)['rates']
         except InfluxDBClientError as e:
@@ -209,10 +217,19 @@ class InfluxData(feed.DataBase):
         
         # Put rates to lines attribute
         self.lines.datetime[0] = bt.date2num(candle[0].to_pydatetime())
-        self.lines.open[0] = candle[1]['open']
-        self.lines.high[0] = candle[1]['high']
-        self.lines.low[0] = candle[1]['low']
-        self.lines.close[0] = candle[1]['close']
+        
+        if candle[1]['open'] == 0.0:
+            self.lines.open[0] = np.nan
+            self.lines.high[0] = np.nan
+            self.lines.low[0] = np.nan
+            self.lines.close[0] = np.nan
+        
+        else:
+            self.lines.open[0] = candle[1]['open']
+            self.lines.high[0] = candle[1]['high']
+            self.lines.low[0] = candle[1]['low']
+            self.lines.close[0] = candle[1]['close']
+        
         if 'spread' in self.full.columns:
             self.lines.spread[0] = candle[1]['spread']
         
