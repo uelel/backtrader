@@ -36,6 +36,7 @@ import collections
 import datetime
 from itertools import islice
 import math
+import numpy as np
 
 from .utils.py3 import range, with_metaclass, string_types
 
@@ -181,7 +182,7 @@ class LineBuffer(LineSingle):
             end = self.idx + ago + 1
             return list(islice(self.array, start, end))
 
-        return self.array[self.idx + ago - size + 1:self.idx + ago + 1]
+        return np.array(self.array[self.idx + ago - size + 1:self.idx + ago + 1])
 
     def getzeroval(self, idx=0):
         ''' Returns a single value of the array relative to the real zero
