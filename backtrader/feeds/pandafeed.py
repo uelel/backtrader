@@ -358,3 +358,67 @@ class PandasData(feed.DataBase):
             self.lines.spread[0] = candle[1]['spread']
         
         return True
+
+class PandasPreloaded(feed.DataBase):
+    """Implementation of data loading from file via pandas read_csv method"""
+
+    params = dict(df=None,
+                  fromdate=None, # optional starttime for backtesting
+                  todate=None, # optional stoptime for backtesting
+                  timeframe=TimeFrame.Minutes, # Timeframe for bt
+                  compression=1, # Timeframe for bt
+                  len=None)
+    
+    def __init__(self):
+        
+        # Define full attribute to be accessed by DataSynchronizer class
+        self.full = None
+
+        # Assign timedelta parameter for strategy purposes
+        if self.p.timeframe == TimeFrame.Minutes:
+            self.p.timedelta = datetime.timedelta(minutes=self.p.compression)
+        
+        # Assign granularity parameter
+        if self.p.timeframe == TimeFrame.Minutes:
+            if self.p.compression <= 30: self.p.gran = 'M'+str(self.p.compression)
+            elif self.p.compression == 60: self.p.gran = 'H1'
+
+    def start(self):
+
+        self.full = self.p.df
+
+        # filter df between given dates
+        if self.p.fromdate is not None and \
+           self.p.todate is not None:
+            self.full = self.full[(self.full.index > self.p.fromdate) & \
+                                  (self.full.index <= self.p.todate)]
+        
+        # get data length
+        self.p.len = self.full.shape[0]
+
+        # create row iterator
+        self.itr = self.full.iterrows()
+    
+    def stop(self):
+        if self.full is not None: self.full = None
+
+    def _load(self):
+        
+        # If no file, no reading
+        if self.full is None: return False
+        
+        try:
+            candle = next(self.itr)
+        except StopIteration:
+            return False
+        
+        # Put rates to lines attribute
+        self.lines.datetime[0] = date2num(candle[0])
+        self.lines.open[0] = candle[1]['open']
+        self.lines.high[0] = candle[1]['high']
+        self.lines.low[0] = candle[1]['low']
+        self.lines.close[0] = candle[1]['close']
+        if 'spread' in self.full.columns:
+            self.lines.spread[0] = candle[1]['spread']
+        
+        return True
