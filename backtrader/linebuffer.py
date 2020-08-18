@@ -212,6 +212,16 @@ class LineBuffer(LineSingle):
 
         return self.array[idx:idx + size]
 
+    def getMinPeriod(self):
+        '''
+        Returns number of NaN values on the beginning of the line
+        '''
+        i = 0
+        for val in iter(self.array):
+            if math.isnan(val): i += 1
+            else: break
+        return i
+
     def __setitem__(self, ago, value):
         ''' Sets a value at position "ago" and executes any associated bindings
 

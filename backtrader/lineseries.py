@@ -39,7 +39,7 @@ from .linebuffer import LineBuffer, LineActions, LinesOperation, LineDelay, NAN
 from .lineroot import LineRoot, LineSingle, LineMultiple
 from .metabase import AutoInfoClass
 from . import metabase
-
+import math
 
 class LineAlias(object):
     ''' Descriptor class that store a line reference and returns that line
@@ -454,6 +454,16 @@ class LineSeries(with_metaclass(MetaLineSeries, LineMultiple)):
     def array(self):
         return self.lines[0].array
 
+    def getMinPeriod(self):
+        '''
+        Returns number of NaN values on the beginning of the line
+        '''
+        i = 0
+        for val in iter(self.lines[0].array):
+            if math.isnan(val): i += 1
+            else: break
+        return i
+    
     def __getattr__(self, name):
         # to refer to line by name directly if the attribute was not found
         # in this object if we set an attribute in this object it will be
