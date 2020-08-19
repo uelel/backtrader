@@ -22,7 +22,7 @@ from __future__ import (absolute_import, division, print_function,
                         unicode_literals)
 
 from . import MovingAverageBase, ExponentialSmoothing
-
+import numpy as np
 
 class ExponentialMovingAverage(MovingAverageBase):
     '''
@@ -39,7 +39,7 @@ class ExponentialMovingAverage(MovingAverageBase):
     See also:
       - http://en.wikipedia.org/wiki/Moving_average#Exponential_moving_average
     '''
-    alias = ('EMA', 'MovingAverageExponential',)
+    alias = ('EMA2', 'MovingAverageExponential',)
     lines = ('ema',)
 
     def __init__(self):
@@ -53,3 +53,34 @@ class ExponentialMovingAverage(MovingAverageBase):
         self.alpha, self.alpha1 = es.alpha, es.alpha1
 
         super(ExponentialMovingAverage, self).__init__()
+
+
+class EMA(MovingAverageBase):
+    '''
+    Exponential moving average implemented iteratively
+    skipVals option added to skip initial NaN data values
+    '''
+
+    params = dict(period=None,
+                  skipVals=None)
+
+    lines = ('ema',)
+
+    def __init__(self):
+
+        if hasattr(self.data, 'close'):
+            self.data = self.data.close
+        else:
+            self.data = self.data
+        
+        self.addminperiod(self.p.skipVals + self.p.period)
+        
+        self.c = 2 / (self.p.period + 1)
+
+
+    def nextstart(self):
+        self.l.ema[0] = np.mean(self.data.get(size=self.p.period)) / self.p.period
+
+    def next(self):
+
+        self.l.ema[0] = self.l.ema[-1] + self.c * (self.data[0] - self.l.ema[-1])
