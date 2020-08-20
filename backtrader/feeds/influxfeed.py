@@ -288,12 +288,20 @@ class InfluxPreloaded(feed.DataBase):
             return False
         
         # Put rates to lines attribute
-        self.lines.datetime[0] = date2num(candle[0])
-        self.lines.open[0] = candle[1]['open']
-        self.lines.high[0] = candle[1]['high']
-        self.lines.low[0] = candle[1]['low']
-        self.lines.close[0] = candle[1]['close']
+        self.lines.datetime[0] = bt.date2num(candle[0])
+        
+        if candle[1]['open'] == 0.0:
+            self.lines.open[0] = np.nan
+            self.lines.high[0] = np.nan
+            self.lines.low[0] = np.nan
+            self.lines.close[0] = np.nan
+        else:
+            self.lines.open[0] = candle[1]['open']
+            self.lines.high[0] = candle[1]['high']
+            self.lines.low[0] = candle[1]['low']
+            self.lines.close[0] = candle[1]['close']
+        
         if 'spread' in self.full.columns:
             self.lines.spread[0] = candle[1]['spread']
-        
+
         return True
