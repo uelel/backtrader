@@ -965,7 +965,7 @@ class BackBroker(bt.BrokerBase):
                 self._execute(order, ago=0, price=p)
             
             # In case of stop loss of short position, trace ask price
-            elif not order.info and phigh >= pcreated:
+            elif order.info and phigh >= pcreated:
                 # price penetrated during the session - use trigger price
                 p = self._slip_up(phigh, pcreated)
                 self._execute(order, ago=0, price=p)
@@ -979,7 +979,7 @@ class BackBroker(bt.BrokerBase):
                 self._execute(order, ago=0, price=p)
             
             # In case of stop loss of long position, trace bid price
-            elif not order.info and plow <= pcreated:
+            elif order.info and plow <= pcreated:
                 # price penetrated during the session - use trigger price
                 p = self._slip_down(plow, pcreated)
                 self._execute(order, ago=0, price=p)
