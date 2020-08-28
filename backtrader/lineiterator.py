@@ -151,7 +151,7 @@ class LineIterator(with_metaclass(MetaLineIterator, LineSeries)):
     _mindatas = 1
     _ltype = LineSeries.IndType
 
-    plotinfo = dict(plot=True,
+    plotinfo = dict(plot=False,
                     subplot=True,
                     plotname='',
                     plotskip=False,
