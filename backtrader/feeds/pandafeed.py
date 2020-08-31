@@ -295,6 +295,8 @@ class PandasData(feed.DataBase):
                   len=None,
                   preloaded=False)
     
+    plotinfo = dict(plot=False)
+    
     def __init__(self):
         
         # Define full attribute to be accessed by DataSynchronizer class
@@ -368,6 +370,8 @@ class PandasPreloaded(feed.DataBase):
                   timeframe=TimeFrame.Minutes, # Timeframe for bt
                   compression=1, # Timeframe for bt
                   len=None)
+    
+    plotinfo = dict(plot=False)
     
     def __init__(self):
         

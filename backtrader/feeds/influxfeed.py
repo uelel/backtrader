@@ -133,6 +133,8 @@ class InfluxData(feed.DataBase):
     
     # Add extra attribute to lines object
     lines = ('spread',)
+    
+    plotinfo = dict(plot=False)
 
     def __init__(self):
         
@@ -246,6 +248,8 @@ class InfluxPreloaded(feed.DataBase):
                   timeframe=bt.TimeFrame.Minutes, # Timeframe for bt
                   compression=1, # Timeframe for bt
                   len=None)
+
+    plotinfo = dict(plot=False)
     
     # Add extra attribute to lines object
     lines = ('spread',)
